@@ -1,5 +1,25 @@
 import React, { useState } from "react";
 import WeatherCard from "./WeatherCard";
+import axios from 'axios'
+
+
+const apiClient = axios.create({
+
+  baseURL: 'https://api.weatherapi.com/v1',
+  timeout: 5000,
+});
+
+apiClient.interceptors.response.use(null,async (error) => {
+  const config = error.config;
+
+  if (!error.response && config && !config._isRetryRequest){
+    config. _isRetryRequest=true;
+    console.log('Network error, retring request....');
+    return apiClient(config);
+  }
+  return Promise.reject(error);
+});
+
 
 const API_KEY = "c9bcc25387b7413ba5491629251909"; 
 
@@ -11,10 +31,13 @@ const WeatherDashboard = () => {
     if (!cityInput) return;
 
     try {
-      const response = await fetch(
-        `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${cityInput}&aqi=no`
-      );
-      const data = await response.json();
+      const response = await apiClient.get('/current.json',{
+        params: {
+          key: API_KEY,
+          q: cityInput,
+        },
+        });
+      const data = response.data;
 
       if (data.error) {
         alert("City not found!");
